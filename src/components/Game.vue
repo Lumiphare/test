@@ -205,6 +205,7 @@ export default {
       // data.nextPlayer：下一个玩家索引
       // data.cardCount：本次打出的牌数
       // 这里选择“只保留本次出的牌数”，因此先清空，然后写入新的背面牌
+
       this.centralCards = [];
       for (let i = 0; i < data.cardCount; i++) {
         this.centralCards.push({
@@ -223,13 +224,15 @@ export default {
       // 如果下一个玩家是自己，可以显示质疑按钮（自定义逻辑）
       if (data.nextPlayer === this.myIndex) {
         this.showChallenge = true;
+      } else {
+        this.showChallenge = false;
       }
     });
 
     // turnChange：服务器广播轮次改变
     this.$socket.on('turnChange', newIndex => {
       this.currentPlayer = newIndex;
-      this.showChallenge = false;
+      // this.showChallenge = false;
     });
 
     // challengeResult：服务器广播挑战结果
@@ -247,7 +250,7 @@ export default {
     // gameOver：服务器广播游戏结束
     this.$socket.on('gameOver', result => {
       console.log('[gameOver]', result);
-      alert(`游戏结束！胜利者：${result.winner}`);
+      // alert(`游戏结束！胜利者：${result.winner}`);
     });
   }
 }

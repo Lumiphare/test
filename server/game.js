@@ -26,7 +26,6 @@ class GameLogic {
     const deck = this.initializeDeck();
     const players = this.rooms[roomNumber];
     const trueCardType = ['Q', 'K', 'A'][Math.floor(Math.random() * 3)];
-    console.log("trueCardType", trueCardType);
 
     players.forEach(player => {
       player.hand = deck.splice(0, 5);
@@ -114,15 +113,14 @@ class GameLogic {
   handleChallenge(socket, { roomNumber }) {
     const gameState = this.gameStates.get(roomNumber);
     const challengerIndex = this.rooms[roomNumber].findIndex(p => p.id === socket.id);
-    
-    if (!this.validateChallenge(gameState, challengerIndex)) return;
-
+    console.log("challengerIndex", challengerIndex);
+    // if (!this.validateChallenge(gameState, challengerIndex, roomNumber)) return;
     const challengeResult = this.checkChallengeValidity(gameState);
-    this.processChallengeResult(roomNumber, gameState, challengeResult);
+    this.processChallengeResult(roomNumber, gameState, challengeResult, challengerIndex);
     this.checkGameOver(roomNumber);
   }
 
-  validateChallenge(gameState, challengerIndex) {
+  validateChallenge(gameState, challengerIndex, roomNumber) {
     return (gameState.currentPlayer + 1) % this.rooms[roomNumber].length === challengerIndex;
   }
 
@@ -132,9 +130,11 @@ class GameLogic {
     );
   }
 
-  processChallengeResult(roomNumber, gameState, isValid) {
+  processChallengeResult(roomNumber, gameState, isValid, challengerIndex) {
     const loserIndex = isValid ? challengerIndex : gameState.lastPlay.player;
     this.rooms[roomNumber][loserIndex].isOut = true;
+
+    console.log("loserIndex", loserIndex);
 
     this.io.to(roomNumber).emit('challengeResult', {
       success: !isValid,
