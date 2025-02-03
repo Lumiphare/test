@@ -41,14 +41,16 @@
           <div v-for="(card, cIndex) in hand" :key="cIndex" :class="[
             'card',
             { selected: selectedCards.includes(cIndex) }
-          ]" @click="toggleSelect(cIndex)">
+          ]"
+          :style="getCardStyle(index, cIndex)" 
+          @click="toggleSelect(cIndex)">
             <span>{{ card.type || '???' }}</span>
           </div>
         </template>
 
         <!-- 如果是其他玩家 -->
         <template v-else>
-          <div v-for="n in player.cardCount" :key="n" class="card back"></div>
+          <div v-for="n in player.cardCount" :key="n" class="card back" :style="getCardStyle(index, n)"></div>
         </template>
       </transition-group>
 
@@ -114,7 +116,43 @@ export default {
       return positions[(index - offset + total) % total];
     },
 
+    getCardStyle(playerIndex, cardIndex) {
+    const pos = this.getPosition(playerIndex);
+
+    if (pos === 'left') {
+      return {
+        position: 'absolute',
+        // 让间距变成 40 像素，每张牌竖向多一点空隙
+        top: `${cardIndex * 40}px`,
+        // 增加 left 偏移，避免贴在左边缘
+        left: '30px',
+        transform: 'rotate(-90deg)',
+        transformOrigin: 'center center',
+        zIndex: cardIndex
+      };
+    } else if (pos === 'right') {
+      return {
+        position: 'absolute',
+        // 同理，间距改大一些
+        top: `${cardIndex * 40}px`,
+        // 给 right 设置一个偏移（让牌离右边缘远一点）
+        right: '30px',
+        transform: 'rotate(90deg)',
+        transformOrigin: 'center center',
+        zIndex: cardIndex
+      };
+    }
+    // 对于上下位置，依然保持水平方向叠放
+    return {
+      // position: 'absolute',
+      left: `${cardIndex * 30}px`,
+      top: '0px',
+      zIndex: cardIndex
+    }
+  },
+
     // 点击手牌，切换选中状态
+
     toggleSelect(index) {
       // 如果还没轮到我，直接返回
       if (!this.amICurrentPlayer) return;
@@ -157,7 +195,7 @@ export default {
     getOverlapStyle(idx) {
       return {
         position: 'absolute',
-        left: `${idx * 30}px`,
+        left: `${idx * 100}px`,
         top: '0px'
       };
     }
@@ -341,14 +379,14 @@ export default {
 }
 
 .player.pos-left {
-  left: 20px;
-  top: 50%;
+  left: 40px;
+  top: 25%;
   transform: translateY(-50%);
 }
 
 .player.pos-right {
-  right: 20px;
-  top: 50%;
+  right: 40px;
+  top: 25%;
   transform: translateY(-50%);
 }
 
@@ -405,7 +443,7 @@ export default {
 
 .action-buttons {
   position: fixed;
-  bottom: 100px;
+  bottom: 175px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
