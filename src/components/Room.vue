@@ -41,14 +41,42 @@
       </div>
     </div>
     
+    <div v-if="!inGame" class="room-container">
+
+    <!-- 房间大厅 -->
     <div v-if="!inRoom" class="room-lobby">
       <h2>房间大厅</h2>
       <ul>
-        <li v-for="room in roomList" :key="room">
-          房间号: {{ room }}
-          <button @click="joinRoomFromLobby(room)" class="room-button" :disabled="countdown > 0">加入</button>
+        <li 
+          v-for="room in roomList" 
+          :key="room"
+          class="room-list-item"
+        >  <!-- 显示房间号 -->
+          <span
+            class="room-state-label"
+            :class="room.state" 
+          >
+            房间号: {{ room.roomNumber }}
+          </span>
+          <!-- 根据state显示状态文字 -->
+          <span v-if="room.state === 'waiting'"> (等待中)</span>
+          <span v-else-if="room.state === 'inProgress'"> (游戏中)</span>
+          <span v-else-if="room.state === 'finished'"> (已结束)</span>
+          <!-- 也可以有更多状态 -->
+
+          <!-- 如果房间在游戏中或倒计时中就禁用“加入”按钮 -->
+          <button 
+            @click="joinRoomFromLobby(room.roomNumber)" 
+            class="room-button spaced-btn" 
+            :disabled="room.state === 'inProgress' || room.playerCount >= 4"
+          >
+            加入
+          </button>
         </li>
       </ul>
+    </div>
+
+    <!-- 如果已经在房间 or 游戏中 (else部分略) -->
     </div>
   </div>
   <GameScreen v-else :room-number="roomNumber"/>
@@ -100,6 +128,7 @@ export default {
     });
     this.$socket.on('roomListUpdate', (rooms) => {
       this.roomList = rooms;
+      console.log("roomList", this.roomList);
     });
     this.$socket.on('readyStart', ()=> {
       this.inGame = true;
@@ -220,6 +249,27 @@ h1 {
   background-color: #e9f7ff;
 }
 
+.room-state-label.waiting {
+  color: green;
+  margin-right: 20px; /* 可根据需要调整 */
+}
+
+/* 使“游戏中”状态（inProgress）文字为红色 */
+.room-state-label.inProgress {
+  color: red;
+  margin-right: 20px;
+}
+
+/* 已结束，可按需添加别的色彩 */
+.room-state-label.finished {
+  color: gray;
+  margin-right: 20px;
+}
+
+.spaced-btn {
+  margin-left: 20px;
+}
+
 .room-button {
   padding: 10px 20px;
   background-color: #007bff;
@@ -232,6 +282,12 @@ h1 {
 
 .room-button:hover {
   background-color: #0056b3;
+}
+
+.room-button[disabled] {
+  background-color: #ccc;
+  cursor: not-allowed;
+  color: #888; 
 }
 
 .room-info {
@@ -267,6 +323,11 @@ h1 {
 
 .room-lobby li {
   margin-bottom: 5px;
+}
+
+.room-list-item {
+  margin-bottom: 10px;
+  list-style: none;
 }
 
 /* 遮罩层样式 */

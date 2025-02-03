@@ -43,29 +43,50 @@
 
   const gameLogic = new GameLogic(io, rooms, gameStates);
 
+  function getRoomList() {
+    return Object.entries(rooms).map(([roomNumber, roomData]) => {
+      return {
+        roomNumber,
+        state: roomData.state,
+        playerCount: roomData.players.length
+      };
+    });
+  }
 
   io.on('connection', (socket) => {
     // console.log('New client connected');
 
-    socket.emit('roomListUpdate', Object.keys(rooms));
+    socket.emit('roomListUpdate', getRoomList());
 
     socket.on('createRoom', (roomNumber) => {
       while (rooms[roomNumber]) {
         roomNumber = Math.random().toString(36).substring(2, 6);
       }
-      rooms[roomNumber] = [];
+      rooms[roomNumber] = {
+        state: 'waiting',
+        players: []
+      };
       socket.emit('roomCreated', roomNumber);
-      io.emit('roomListUpdate', Object.keys(rooms));
+      io.emit('roomListUpdate', getRoomList());
     });
 
     socket.on('joinRoom', ({ roomNumber, username }) => {
       if (!rooms[roomNumber]) {
-        rooms[roomNumber] = [];
+        rooms[roomNumber] = {
+          state: 'waiting',
+          players: []
+        };
       }
-      if (rooms[roomNumber].length < 4) {
-        rooms[roomNumber].push({ id: socket.id, username, isReady: false });
+      if (rooms[roomNumber].state === 'inProgress') {
+        socket.emit('joinFailed', {
+          reason: '房间正在游戏中，无法加入',
+        });
+        return;
+      }
+      if (rooms[roomNumber].players.length < 4) {
+        rooms[roomNumber].players.push({ id: socket.id, username, isReady: false });
         socket.join(roomNumber);
-        io.to(roomNumber).emit('roomUpdate', rooms[roomNumber]);
+        io.to(roomNumber).emit('roomUpdate', rooms[roomNumber].players);
       } else {
         socket.emit('roomFull', '房间已满');
       }
@@ -78,7 +99,7 @@
       const room = rooms[roomNumber];
       if (!room) return;
     
-      const player = room.find(p => p.id === socket.id);
+      const player = room.players.find(p => p.id === socket.id);
       if (!player) return;
     
       player.isReady = isReady;
@@ -96,10 +117,10 @@
       }
     
       // 触发状态更新
-      io.to(roomNumber).emit('roomUpdate', room);
+      io.to(roomNumber).emit('roomUpdate', room.players);
     
       // 检查是否满足开始条件
-      if (room.every(p => p.isReady) && room.length >= 2) {
+      if (room.players.every(p => p.isReady) && room.players.length >= 2) {
         startCountdown(roomNumber); // 统一倒计时入口
       }
     });
@@ -121,27 +142,29 @@
     });
 
     socket.on('leaveRoom', (roomNumber) => {
-      if (rooms[roomNumber]) {
-        rooms[roomNumber] = rooms[roomNumber].filter(player => player.id !== socket.id);
-        socket.leave(roomNumber); 
-        io.to(roomNumber).emit('roomUpdate', rooms[roomNumber]);
-        if (rooms[roomNumber].length === 0) {
+      const room = rooms[roomNumber];
+      if (room) {
+        room.players = room.players.filter(p => p.id !== socket.id);
+        socket.leave(roomNumber);
+        io.to(roomNumber).emit('roomUpdate', room.players);
+        // 如果房间没人了，删除房间
+        if (room.players.length === 0) {
           delete rooms[roomNumber];
         }
-        io.emit('roomListUpdate', Object.keys(rooms));
+        io.emit('roomListUpdate', getRoomList());
       }
     });
     
-
     socket.on('disconnect', () => {
       for (const roomNumber in rooms) {
-        rooms[roomNumber] = rooms[roomNumber].filter(player => player.id !== socket.id);
-        io.to(roomNumber).emit('roomUpdate', rooms[roomNumber]);
-        if (rooms[roomNumber].length === 0) {
+        const room = rooms[roomNumber];
+        room.players = room.players.filter(p => p.id !== socket.id);
+        io.to(roomNumber).emit('roomUpdate', room.players);
+        if (room.players.length === 0) {
           delete rooms[roomNumber];
         }
       }
-      io.emit('roomListUpdate', Object.keys(rooms));
+      io.emit('roomListUpdate', getRoomList());
       // console.log('Client disconnected');
     });
   });

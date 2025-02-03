@@ -24,13 +24,14 @@ class GameLogic {
 
   startGame(roomNumber) {
     const deck = this.initializeDeck();
-    const players = this.rooms[roomNumber];
+    const players = this.rooms[roomNumber].players;
     const trueCardType = ['Q', 'K', 'A'][Math.floor(Math.random() * 3)];
 
     players.forEach(player => {
       player.hand = deck.splice(0, 5);
       player.isOut = false;
     });
+    this.rooms[roomNumber].state = 'inProgress';
 
     this.gameStates.set(roomNumber, {
       deck,
