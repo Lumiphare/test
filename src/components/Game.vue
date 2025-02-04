@@ -299,15 +299,58 @@ export default {
   position: relative;
   height: 100vh;
   background: #2c3e50;
+  /* 可以用flexBox做更灵活的布局 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
-/* 中心区域，用于放背面牌 */
+
 .central-pile {
+  /* 示例：在宽屏显示时，居中并指定固定大小 */
+  width: 200px;
+  height: 120px;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  text-align: center;
 }
+
+@media screen and (max-width: 600px) and (orientation: landscape) {
+  .game-container {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 
+            env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .player {
+    min-width: 80px; /* 防止用户名换行 */
+    
+    &.pos-left {
+      left: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    &.pos-right {
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  }
+
+  .card {
+    width: 50px !important;
+    height: 75px !important;
+    font-size: 14px;
+  }
+
+  .action-buttons {
+    bottom: 10px;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 .pile-label {
   color: white;
   margin-bottom: 10px;
@@ -399,10 +442,18 @@ export default {
 }
 
 /* 过渡动画名叫 .card-* */
-.card-enter-active,
+/* .card-enter-active,
 .card-leave-active {
   transition: all 0.3s;
+} */
+
+.card-enter-active {
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+.card-leave-active {
+  transition: all 0.3s cubic-bezier(0.36, 0, 0.66, -0.56);
+}
+
 
 .card-enter-from,
 .card-leave-to {

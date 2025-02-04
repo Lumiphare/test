@@ -68,8 +68,7 @@ class GameLogic {
 
   handlePlayCards(socket, { roomNumber, cardIndexes }) {
     const gameState = this.gameStates.get(roomNumber);
-    const player = this.rooms[roomNumber].find(p => p.id === socket.id);
-    
+    const player = this.rooms[roomNumber].players.find(p => p.id === socket.id);
     if (!this.validatePlay(gameState, player, cardIndexes, roomNumber)) return;
 
     const playedCards = this.processPlayedCards(player, cardIndexes);
@@ -79,7 +78,7 @@ class GameLogic {
   }
 
   validatePlay(gameState, player, cardIndexes, roomNumber) {
-    return gameState.currentPlayer === this.rooms[roomNumber].indexOf(player) &&
+    return gameState.currentPlayer === this.rooms[roomNumber].players.indexOf(player) &&
            cardIndexes.length >= 1 &&
            cardIndexes.length <= 3;
   }
@@ -92,7 +91,7 @@ class GameLogic {
 
   updateGameState(gameState, playedCards, player, roomNumber) {
     gameState.lastPlay = {
-      player: this.rooms[roomNumber].indexOf(player),
+      player: this.rooms[roomNumber].players.indexOf(player),
       cards: playedCards,
       timestamp: Date.now()
     };
@@ -102,18 +101,18 @@ class GameLogic {
     this.io.to(roomNumber).emit('cardsPlayed', {
       player: player.username,
       cardCount: playedCards.length,
-      nextPlayer: (gameState.currentPlayer + 1) % this.rooms[roomNumber].length
+      nextPlayer: (gameState.currentPlayer + 1) % this.rooms[roomNumber].players.length
     });
   }
 
   passTurn(roomNumber, gameState) {
-    gameState.currentPlayer = (gameState.currentPlayer + 1) % this.rooms[roomNumber].length;
+    gameState.currentPlayer = (gameState.currentPlayer + 1) % this.rooms[roomNumber].players.length;
     this.io.to(roomNumber).emit('turnChange', gameState.currentPlayer);
   }
 
   handleChallenge(socket, { roomNumber }) {
     const gameState = this.gameStates.get(roomNumber);
-    const challengerIndex = this.rooms[roomNumber].findIndex(p => p.id === socket.id);
+    const challengerIndex = this.rooms[roomNumber].players.findIndex(p => p.id === socket.id);
     console.log("challengerIndex", challengerIndex);
     // if (!this.validateChallenge(gameState, challengerIndex, roomNumber)) return;
     const challengeResult = this.checkChallengeValidity(gameState);
@@ -122,7 +121,7 @@ class GameLogic {
   }
 
   validateChallenge(gameState, challengerIndex, roomNumber) {
-    return (gameState.currentPlayer + 1) % this.rooms[roomNumber].length === challengerIndex;
+    return (gameState.currentPlayer + 1) % this.rooms[roomNumber].players.length === challengerIndex;
   }
 
   checkChallengeValidity(gameState) {
@@ -133,19 +132,20 @@ class GameLogic {
 
   processChallengeResult(roomNumber, gameState, isValid, challengerIndex) {
     const loserIndex = isValid ? challengerIndex : gameState.lastPlay.player;
-    this.rooms[roomNumber][loserIndex].isOut = true;
+    this.rooms[roomNumber].players[loserIndex].isOut = true;
 
     console.log("loserIndex", loserIndex);
 
+
     this.io.to(roomNumber).emit('challengeResult', {
       success: !isValid,
-      loser: this.rooms[roomNumber][loserIndex].username,
+      loser: this.rooms[roomNumber].players[loserIndex].username,
       actualCards: gameState.lastPlay.cards.map(c => c.type)
     });
   }
 
   checkGameOver(roomNumber) {
-    const remainingPlayers = this.rooms[roomNumber].filter(p => !p.isOut);
+    const remainingPlayers = this.rooms[roomNumber].players.filter(p => !p.isOut);
     if (remainingPlayers.length === 1) {
       this.io.to(roomNumber).emit('gameOver', { winner: remainingPlayers[0].username });
       this.gameStates.delete(roomNumber);
